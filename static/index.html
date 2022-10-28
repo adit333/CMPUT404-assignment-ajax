@@ -31,6 +31,8 @@ var context = canvas.getContext("2d");
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
 
+var img = new Image();
+img.src = "./jswt.jpg";
 
 function sendJSONXMLHTTPRequest(url, objects, callback) {
     var xhr = new XMLHttpRequest();
@@ -39,7 +41,9 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
             try {
                 if (xhr.status==200) {
                     //XXX: parse some JSON from the request!
+                    var json = JSON.parse(xhr.responseText);
                     //XXX: Pass the data to the callback!
+                    callback(json);
                 }
             } 
             catch(e) {
@@ -48,8 +52,13 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
         }
     };
     //XXX: POST to a URL
+    xhr.open("POST", url, true);
     //XXX: set the mimetype and the accept headers!
     // Remember to use application/json !
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.setRequestHeader("Accept", "application/json");
+    //XXX: send the JSON string!
+    xhr.send(JSON.stringify(objects));
 }
 
 
@@ -66,6 +75,24 @@ function drawCircle(context,entity) {
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+        stroke();                                
+    }
+}
+
+function drawImg(context,entity) {
+    var x = entity["x"];
+    var y = entity["y"];
+    context.drawImage(img, x, y);
+    with(context) {
+        beginPath();              
+        lineWidth = 5;
+        var x = entity["x"];
+        var y = entity["y"];
+        //moveTo(x,y);
+        fillStyle = entity["colour"];
+        strokeStyle = fillStyle;
+        rectHeight = ( entity["radius"] ? 5 + entity["radius"]: 10);
+        rect(x,y,rectHeight,rectHeight) 
         stroke();                                
     }
 }
@@ -94,7 +121,8 @@ function renderFrame() {
     clearFrame();
     for (var key in world) {
         var entity = world[key];
-        drawCircle(context,prepEntity(entity));
+        // drawCircle(context,prepEntity(entity));
+        drawImg(context,prepEntity(entity));
     }
 }
 
@@ -138,6 +166,9 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just  modified!
+    sendJSONXMLHTTPRequest("http://"+host+"/entity/"+entity, data, function(json) {
+        console.log(json);
+    });
 
 }
 
@@ -262,14 +293,28 @@ mouse.mousedraggers.push(function(x,y,clicked,e) {
 
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
-    drawFrame();
+    // and then update the world variable
+    // and then call drawNextFrame();
+    sendJSONXMLHTTPRequest("http://"+host+"/world", {}, function(json) {
+        world = json;
+        drawNextFrame();
+        drawFrame();
+    });
 }
 
 // 30 frames per second
 setInterval( update, 1000/30.0);
 
-
+function clearScreen() {
+    sendJSONXMLHTTPRequest("http://"+host+"/clear", {}, function(json) {
+        world = json;
+        drawNextFrame();
+    });
+};
 
     </script>
+
+<button onclick ="clearScreen()">Clear Screen</button>
+
 </body>
 </html>
