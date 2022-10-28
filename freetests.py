@@ -50,7 +50,6 @@ class ServerTestCase(unittest.TestCase):
         if (r.status_code == 200):
             self.assertTrue(len(r.data) > 5, "No data?")
 
-    @unittest.skip("skipping")
     def testUpdate(self):
         v = 'T'+str(random.randint(1,1000000))
         r = self.app.get(('/entity/%s' % v))
